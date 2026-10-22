@@ -91,6 +91,7 @@ function harness(initial = true, saveFails = false) {
 	const handlers = new Map<string, Function>();
 	const commands = new Map<string, any>();
 	const notices: string[] = [];
+	const statusCalls: { key: string; text: string | undefined }[] = [];
 	const original = providerFixture();
 	let active = original;
 	let saved = initial;
@@ -99,7 +100,10 @@ function harness(initial = true, saveFails = false) {
 		hasUI: true,
 		get model() { return active.getModels()[0]; },
 		modelRegistry: { getProvider: () => active },
-		ui: { setStatus() {}, notify(message: string) { notices.push(message); } },
+		ui: {
+			setStatus(key: string, text: string | undefined) { statusCalls.push({ key, text }); },
+			notify(message: string) { notices.push(message); },
+		},
 		async waitForIdle() { idleWaits++; },
 	};
 	extension({
@@ -110,8 +114,9 @@ function harness(initial = true, saveFails = false) {
 	} as any, { load: () => saved, save(value) { if (saveFails) throw new Error("read-only"); saved = value; } });
 	return {
 		start: () => handlers.get("session_start")!({}, ctx),
+		event: (name: string) => handlers.get(name)!({}, ctx),
 		command: (args: string) => commands.get("copilot-compact").handler(args, ctx),
-		ctx, notices, original, active: () => active, saved: () => saved, idleWaits: () => idleWaits,
+		ctx, notices, statusCalls, original, active: () => active, saved: () => saved, idleWaits: () => idleWaits,
 	};
 }
 
@@ -132,6 +137,18 @@ test("default-on command can turn off/on, toggle, persist and report status with
 	await h.command("invalid");
 	assert.match(h.notices.at(-1)!, /Usage:/);
 	assert.equal(h.idleWaits(), 3);
+});
+
+test("lifecycle events and commands never add a persistent UI status", async () => {
+	for (const initial of [true, false]) {
+		const h = harness(initial);
+		h.start();
+		h.event("model_select");
+		h.event("before_agent_start");
+		for (const action of ["off", "on", "toggle", "status"]) await h.command(action);
+		assert.deepEqual(h.statusCalls, []);
+		assert.match(h.notices.at(-1)!, /Copilot GPT early compaction:/);
+	}
 });
 
 test("saved off preference is respected on startup and session switches", async () => {

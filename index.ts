@@ -25,18 +25,8 @@ export default function copilotGptCompact(
 		return `Copilot GPT early compaction: ${enabled ? "on" : "off"}; effective window ${model.contextWindow.toLocaleString()}, native compact threshold > ${threshold.toLocaleString()} tokens.${native}`;
 	}
 
-	function updateStatus(ctx: ExtensionContext): void {
-		if (!ctx.hasUI) return;
-		const applicable = isCopilotGpt(ctx.model);
-		const nativeDisabled = pi.getSettings().compaction?.enabled === false;
-		ctx.ui.setStatus("copilot-compact", applicable
-			? `Copilot compact: ${!enabled ? "off" : nativeDisabled ? "paused" : "on (272k)"}`
-			: undefined);
-	}
-
-	function apply(ctx: ExtensionContext): void {
+	function apply(): void {
 		if (original && capped) pi.registerProvider(enabled ? capped : original);
-		updateStatus(ctx);
 	}
 
 	pi.on("session_start", (_event, ctx) => {
@@ -54,7 +44,7 @@ export default function copilotGptCompact(
 			return;
 		}
 		capped ??= withContextCap(original);
-		apply(ctx);
+		apply();
 		if (enabled && isCopilotGpt(ctx.model) && ctx.model!.contextWindow > CONTEXT_CAP) {
 			ctx.ui.notify("Copilot compact: an explicit model/provider override takes precedence over the 272k cap. Check models.json or other provider extensions.", "warning");
 		}
@@ -64,12 +54,10 @@ export default function copilotGptCompact(
 		// Scoped model cycling can select an uncapped snapshot captured before startup.
 		// Re-registering refreshes the active model from the capped registry without
 		// emitting another model_select event or changing the selected model ID.
-		if (ctx.model?.provider === "github-copilot") apply(ctx);
-		else updateStatus(ctx);
+		if (ctx.model?.provider === "github-copilot") apply();
 	});
 	pi.on("before_agent_start", (_event, ctx) => {
-		if (ctx.model?.provider === "github-copilot" && enabled && ctx.model.contextWindow > CONTEXT_CAP) apply(ctx);
-		else updateStatus(ctx);
+		if (ctx.model?.provider === "github-copilot" && enabled && ctx.model.contextWindow > CONTEXT_CAP) apply();
 	});
 
 	pi.registerCommand("copilot-compact", {
@@ -91,7 +79,7 @@ export default function copilotGptCompact(
 					return;
 				}
 				enabled = next;
-				apply(ctx);
+				apply();
 			}
 			ctx.ui.notify(description(ctx), "info");
 		},

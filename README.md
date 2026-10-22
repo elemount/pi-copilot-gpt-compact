@@ -32,6 +32,8 @@ Pi extension 在宿主进程内运行，拥有当前用户权限，请仅安装�
 /copilot-compact toggle    切换开关
 ```
 
+插件不显示常驻界面状态；需要时用 `/copilot-compact status` 查看。
+
 开关保存在 `<agent-dir>/copilot-gpt-compact.json`，默认路径为
 `~/.pi/agent/copilot-gpt-compact.json`。没有配置文件时默认开启；首次使用无需额外设置。
 `PI_CODING_AGENT_DIR` 设置了其他 agent 目录时，配置跟随该目录。
@@ -52,7 +54,7 @@ Pi extension 在宿主进程内运行，拥有当前用户权限，请仅安装�
 
 这是**有效窗口上限**策略，Pi 底部会按限制后的窗口计算使用率；原生输出预算也会受该窗口约束。
 
-如果在 `/settings` 中关闭了 Pi 原生自动压缩，插件会尊重这个设置，不会强行开启。状态显示 `paused`。
+如果在 `/settings` 中关闭了 Pi 原生自动压缩，插件会尊重这个设置，不会强行开启。`/copilot-compact status` 会提示原生自动压缩已关闭。
 
 显式 `models.json` 窗口覆盖或其他重新注册 Copilot provider 的插件可能优先于本插件；当前模型未应用上限时，启动会提示警告。避免让多个插件同时负责同一个 provider 的窗口设置。
 
