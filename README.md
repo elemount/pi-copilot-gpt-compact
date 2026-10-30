@@ -1,6 +1,6 @@
 # pi-copilot-gpt-compact
 
-Pi 的 GitHub Copilot GPT 提前压缩插件，**默认开启**，可以手动关闭，开关跨会话保存。
+Pi 的 GitHub Copilot GPT 提前压缩插件，**默认关闭**，可以手动开启，开关跨会话保存。
 
 已在 Pi **1.4.0** 上测试。
 
@@ -35,7 +35,7 @@ Pi extension 在宿主进程内运行，拥有当前用户权限，请仅安装�
 插件不显示常驻界面状态；需要时用 `/copilot-compact status` 查看。
 
 开关保存在 `<agent-dir>/copilot-gpt-compact.json`，默认路径为
-`~/.pi/agent/copilot-gpt-compact.json`。没有配置文件时默认开启；首次使用无需额外设置。
+`~/.pi/agent/copilot-gpt-compact.json`。没有配置文件时默认关闭；需要时用 `/copilot-compact on` 开启。已有的开关配置保持生效；配置无法读取时回退为关闭并提示警告。
 `PI_CODING_AGENT_DIR` 设置了其他 agent 目录时，配置跟随该目录。
 
 关闭的是本插件的**提前压缩策略**，不是 Pi 原生自动压缩。窗口接近模型原始上限时，Pi 仍会按原来的配置压缩。
@@ -77,4 +77,4 @@ pi -e ./index.ts
 PI_OFFLINE=1 npm test
 ```
 
-测试不需要真实凭据，不发送模型请求，包括默认开启、开关持久化、模型范围、原窗口恢复、动态模型刷新，以及真实 Pi SDK 中的工具调用 → 原生压缩 → 自动继续。
+测试不需要真实凭据，不发送模型请求，包括默认关闭、开关持久化、模型范围、原窗口恢复、动态模型刷新，以及真实 Pi SDK 中的工具调用 → 原生压缩 → 自动继续。

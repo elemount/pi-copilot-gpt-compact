@@ -9,11 +9,11 @@ import { createAgentSession, DefaultResourceLoader, ModelRuntime, SessionManager
 import extension from "../index.ts";
 import { CONTEXT_CAP } from "../core.ts";
 
-test("real Pi session compacts between tool turns and continues without aborting", { timeout: 20_000 }, async () => {
+test("real Pi session starts uncapped, then enabled compaction continues between tool turns without aborting", { timeout: 20_000 }, async () => {
 	const dir = mkdtempSync(join(tmpdir(), "copilot-compact-session-"));
 	let calls = 0;
 	let toolCalls = 0;
-	let saved = true;
+	let saved = false;
 	const errors: string[] = [];
 	const compactionEvents: unknown[] = [];
 	const model = {
@@ -87,6 +87,14 @@ test("real Pi session compacts between tool turns and continues without aborting
 			sessionManager, resourceLoader,
 		}));
 		await session.bindExtensions({ onError: error => errors.push(String(error.error)) });
+		assert.equal(session.model!.contextWindow, 1_048_576);
+		await session.setModel({ ...model, id: "gpt-compact-alt" });
+		assert.equal(session.model!.contextWindow, 1_048_576);
+		await session.prompt("/copilot-compact on");
+		assert.equal(saved, true);
+		assert.equal(calls, 0);
+		assert.equal(session.model!.contextWindow, CONTEXT_CAP);
+		await session.setModel(model);
 		assert.equal(session.model!.contextWindow, CONTEXT_CAP);
 		// Simulate scoped-model snapshots selected before the extension capped the catalog.
 		await session.setModel({ ...model, id: "gpt-compact-alt" });

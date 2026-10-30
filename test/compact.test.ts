@@ -68,12 +68,12 @@ test("image and classifier models are not changed", () => {
 	assert.equal(all[2], classifier);
 });
 
-test("preference defaults on, survives reload, rejects invalid data, and leaves no temp files", () => {
+test("preference defaults off, survives reload, rejects invalid data, and leaves no temp files", () => {
 	const dir = mkdtempSync(join(tmpdir(), "copilot-compact-"));
 	try {
 		const path = join(dir, "preference.json");
 		const store = preferenceStore(path);
-		assert.equal(store.load(), true);
+		assert.equal(store.load(), false);
 		store.save(false);
 		assert.equal(preferenceStore(path).load(), false);
 		assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { enabled: false });
@@ -87,7 +87,7 @@ test("preference defaults on, survives reload, rejects invalid data, and leaves 
 	} finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-function harness(initial = true, saveFails = false) {
+function harness(initial = false, saveFails = false, loadFails = false) {
 	const handlers = new Map<string, Function>();
 	const commands = new Map<string, any>();
 	const notices: string[] = [];
@@ -111,7 +111,7 @@ function harness(initial = true, saveFails = false) {
 		registerCommand(name: string, command: any) { commands.set(name, command); },
 		registerProvider(provider: Provider) { active = provider; },
 		getSettings() { return {}; },
-	} as any, { load: () => saved, save(value) { if (saveFails) throw new Error("read-only"); saved = value; } });
+	} as any, { load() { if (loadFails) throw new Error("invalid preference"); return saved; }, save(value) { if (saveFails) throw new Error("read-only"); saved = value; } });
 	return {
 		start: () => handlers.get("session_start")!({}, ctx),
 		event: (name: string) => handlers.get(name)!({}, ctx),
@@ -120,10 +120,11 @@ function harness(initial = true, saveFails = false) {
 	};
 }
 
-test("default-on command can turn off/on, toggle, persist and report status without model calls", async () => {
+test("default-off command can turn off/on, toggle, persist and report status without model calls", async () => {
 	const h = harness();
 	h.start();
-	assert.equal(h.ctx.model.contextWindow, CONTEXT_CAP);
+	assert.equal(h.active(), h.original);
+	assert.equal(h.ctx.model.contextWindow, 1_048_576);
 	await h.command("off");
 	assert.equal(h.active(), h.original);
 	assert.equal(h.saved(), false);
@@ -161,6 +162,14 @@ test("saved off preference is respected on startup and session switches", async 
 	await h.command("off");
 	h.start();
 	assert.equal(h.ctx.model.contextWindow, 1_048_576);
+});
+
+test("unreadable preference defaults off and warns instead of capping the model", () => {
+	const h = harness(true, false, true);
+	h.start();
+	assert.equal(h.active(), h.original);
+	assert.equal(h.ctx.model.contextWindow, 1_048_576);
+	assert.match(h.notices.at(-1)!, /Cannot read Copilot compact preference; defaulting to off/);
 });
 
 test("failed preference writes do not change the running option", async () => {

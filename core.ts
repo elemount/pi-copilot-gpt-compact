@@ -42,7 +42,7 @@ export function preferenceStore(path: string): PreferenceStore {
 			try {
 				text = readFileSync(path, "utf8");
 			} catch (error) {
-				if ((error as NodeJS.ErrnoException).code === "ENOENT") return true;
+				if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
 				throw error;
 			}
 			const config: unknown = JSON.parse(text);

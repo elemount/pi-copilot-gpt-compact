@@ -8,7 +8,7 @@ export default function copilotGptCompact(
 	pi: ExtensionAPI,
 	store: PreferenceStore = preferenceStore(join(getAgentDir(), "copilot-gpt-compact.json")),
 ): void {
-	let enabled = true;
+	let enabled = false;
 	let original: Provider | undefined;
 	let capped: Provider | undefined;
 
@@ -33,8 +33,8 @@ export default function copilotGptCompact(
 		try {
 			enabled = store.load();
 		} catch (error) {
-			enabled = true;
-			ctx.ui.notify(`Cannot read Copilot compact preference; defaulting to on. ${String(error)}`, "warning");
+			enabled = false;
+			ctx.ui.notify(`Cannot read Copilot compact preference; defaulting to off. ${String(error)}`, "warning");
 		}
 		// Capture the existing provider, including its live/remote model catalog.
 		// Do not recreate Copilot OAuth or copy a fixed list of its models.
@@ -61,7 +61,7 @@ export default function copilotGptCompact(
 	});
 
 	pi.registerCommand("copilot-compact", {
-		description: "Copilot GPT early compaction: /copilot-compact [on|off|toggle|status] (default on; saved globally)",
+		description: "Copilot GPT early compaction: /copilot-compact [on|off|toggle|status] (default off; saved globally)",
 		handler: async (args, ctx) => {
 			const action = args.trim().toLowerCase() || "status";
 			if (!["on", "off", "toggle", "status"].includes(action)) {
